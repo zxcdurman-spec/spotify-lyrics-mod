@@ -32,7 +32,17 @@ jobs:
           gradle-version: "9.6.0"
 
       - name: Build for Minecraft ${{ matrix.mc }}
-        run: gradle build --stacktrace -Pminecraft_version=${{ matrix.mc }} -Pminecraft_dep=~${{ matrix.mc }} -Pfabric_version=${{ matrix.fabric }}
+        run: |
+          set -o pipefail
+          gradle build -Pminecraft_version=${{ matrix.mc }} -Pminecraft_dep=~${{ matrix.mc }} -Pfabric_version=${{ matrix.fabric }} 2>&1 | tee build.log
+
+      - name: Error report
+        if: failure()
+        run: |
+          echo "### Build errors (${{ matrix.mc }})" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E -A4 "error:|What went wrong|Could not" build.log | head -120 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - run: rm -f build/libs/*-sources.jar
 
